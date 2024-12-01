@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceRoot}/day1"
+            "program": "${workspaceRoot}/${relativeFileDirname}"
         }
     ]
 }
