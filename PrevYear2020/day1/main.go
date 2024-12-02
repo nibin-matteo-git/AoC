@@ -1,7 +1,6 @@
 package main
 
 import (
-	"PrevYear2020/helpers"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,8 +8,8 @@ import (
 
 func main() {
 	cwd, _ := os.Getwd()
-	inputPath := filepath.Join(cwd, "day1", "input.txt")
-	input := helpers.GetInput(inputPath)
+	inputPath := filepath.Join(cwd, "input.txt")
+	input := GetInput(inputPath)
 	myMap := make(map[int]int)
 	for _, num := range(input){
 		myMap[num] = myMap[num]+1
