@@ -33,3 +33,11 @@ func addToMap(input []int) map[int]int{
 
 	return out
 }
+
+func MapFuncToList[T, V any](input []T, function func(T)V)[]V{
+	out:=make([]V, len(input))
+	for i, val := range(input){
+		out[i]=function(val)
+	}
+	return out
+}
