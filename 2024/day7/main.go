@@ -15,8 +15,26 @@ func main() {
 	cwd, _ := os.Getwd()
 	inputPath := filepath.Join(cwd, "input.txt")
 	input := GetInput(inputPath)
-	p1(input)
+	p2(input)
 	fmt.Println(calibrationResult)
+}
+
+func p2(input []myStruct){
+	var wg sync.WaitGroup
+	
+	for i:=0; i<len(input); i++{
+		wg.Add(1)
+		target := input[i].target
+		values := input[i].values
+		go func(target int, values []int){
+			defer wg.Done()
+			fmt.Println(target, " : ", values[0], values[1])
+			p2BruteForce(target, values, 2, 0, &wg, "+", values[0], values[1])
+			p2BruteForce(target, values, 2, 0, &wg, "*", values[0], values[1])
+			p2BruteForce(target, values, 2, 0, &wg, "||", values[0], values[1])
+		}(target, values)
+	}
+	wg.Wait()
 }
 
 func p1(input []myStruct){
@@ -63,13 +81,37 @@ func p1(input []myStruct){
 
 // }
 
+// valindex should start from 1 
+// calcval should start from 0 
+// valOnIndex should have the valIndex-1's value 
 
-func p2BruteForce(target int, values []int, valIndex int, calcVal int, wg *sync.WaitGroup, valOnIndex int)bool{
-	if valIndex<len(values){
+func p2BruteForce(target int, values []int, valIndex int, calcVal int, wg *sync.WaitGroup, operator string, valOnIndex1, valOnIndex2 int)bool{
+	if valIndex<len(values)-1{
 		
+
 		newIndex := valIndex+1
-		tmpP2Val, _ := strconv.Atoi(strconv.Itoa(values[valIndex])+strconv.Itoa(values[newIndex]))
-		return p2BruteForce(target, values,  newIndex, calcVal*values[valIndex], wg)|| p2BruteForce(target, values, newIndex, calcVal+values[valIndex], wg, 0)||p2BruteForce(target, values, newIndex+1, calcVal, wg, tmpP2Val)||p2BruteForce(target, values, newIndex+1, calcVal, wg, tmpP2Val)
+		if operator=="+"{
+			calcVal+=valOnIndex1
+			valOnIndex1=valOnIndex2
+			if newIndex<len(values){
+				valOnIndex2 = values[newIndex]
+			}
+		}
+		if operator=="*"{
+			calcVal*=valOnIndex1
+			valOnIndex1=valOnIndex2
+			if newIndex<len(values){
+				valOnIndex2 = values[newIndex]
+			}
+		}
+		if operator=="||"{
+			valOnIndex1, _=strconv.Atoi(strconv.Itoa(valOnIndex1)+strconv.Itoa(valOnIndex2))
+			if newIndex<len(values){
+				valOnIndex2 = values[newIndex]
+			}
+		}
+	
+		return p2BruteForce(target, values,  newIndex, calcVal, wg, "+", valOnIndex1, valOnIndex2 )|| p2BruteForce(target, values, newIndex, calcVal, wg, "*", valOnIndex1, valOnIndex2)||p2BruteForce(target, values, newIndex+1, calcVal, wg, "||", valOnIndex1, valOnIndex2)
 	}else{
 		if calcVal==target{
 			calibrationResult+=target
