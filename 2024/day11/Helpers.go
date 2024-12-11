@@ -1,39 +1,27 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
-	"regexp"
+	"strconv"
 	"strings"
 )
 
 
-func GetInput(inputFile string)([][]string, [][]int) {
+func GetInput(inputFile string)([]string) {
 	contents, err := os.ReadFile(inputFile)
 	HandleError(err)
 	result := strings.Split(string(contents), "\n")
-	trailheadLocs := make([][]int, 0)
-	re := regexp.MustCompile("0")
-	for i, line := range(result){
+	out := make([]string, 0)
+	for _, line := range(result){
 		if strings.TrimSpace(line)==""{
 			continue
 		}
-		indices := re.FindAllStringIndex(line, -1)
-		for _, loc := range(indices){
-			trailheadLocs = append(trailheadLocs, []int{i, loc[0]})
-		}
+		out = strings.Split(strings.TrimSpace(line), " ")
 	}
 
-
-	out := make([][]string, 0)	
-	for _, line := range(result){
-		if strings.TrimSpace(line) == ""{
-			continue
-		}
-		tmp := strings.TrimSpace(line)
-		out = append(out, strings.Split(tmp, ""))
-	}
-	return out, trailheadLocs 
+	return out
 }
 func HandleError(err error) {
 	if err != nil {
@@ -68,4 +56,27 @@ func MapFuncToList[T, V any](input []T, function func(T) V) []V {
 
 func checkWithinbounds[T any](input [][]T, currLoc []int) bool{
 	return currLoc[0]<len(input) && currLoc[0]>=0 && currLoc[1]<len(input[0]) && currLoc[1]>=0
+}
+
+// this wouldn't return error so can use directly on functions 
+func convertStringToInt(input string)int{
+	num, err := strconv.Atoi(input)
+	if err!=nil{
+		fmt.Println("error converting string: ", input)
+	}
+	return num
+}
+
+
+func combineNestedLoops[T any](input [][]T, nestedArrSize int)[]T{
+	var out []T
+	if nestedArrSize != -1{
+		out = make([]T, 0, nestedArrSize)
+	}else{
+		out = make([]T, 0, len(input))
+	}
+	for _, val := range(input){
+		out = append(out, val...)
+	}
+	return out
 }

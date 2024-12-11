@@ -4,108 +4,86 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"sync"
 )
 
-
-var markSummits [][]string
-func resetMarkSummits(input [][]string){
-	markSummits = make([][]string, len(input))
-	for i:=0; i<len(markSummits); i++{
-		markSummits[i]=make([]string, len(input[0]))
-	}
-}
-func markTheSummit(loc []int){
-	if checkWithinbounds(markSummits, loc){
-		markSummits[loc[0]][loc[1]]= "."
-	}
-}
-func checkIfMarked(loc []int) bool{
-	if checkWithinbounds(markSummits, loc){
-		return markSummits[loc[0]][loc[1]]=="."
-	}
-	return false
-}
-
+var GOMAXPROCS = runtime.NumCPU()
 
 
 func main() {
 	cwd, _ := os.Getwd()
 	inputPath := filepath.Join(cwd, "input.txt")
-	input, trailHeadLocs := GetInput(inputPath)
-	fmt.Println(trailHeadLocs)
-	fmt.Println(p2(trailHeadLocs, input))
+	input := GetInput(inputPath)
+	blinks := 75
+	fmt.Println("no of cores: ", GOMAXPROCS)
+	for i:=0; i<blinks; i++{
+		input = p1(input)
+		// fmt.Println(input)
+		fmt.Println("iter: ", i, ";len: ", len(input))
+	}
+	fmt.Println(len(input))
 }
 
 
-
-
-func p2(trailHeadLocs [][]int, input [][]string)int{
-	listOfTrailHeadScores := make([]int, 0)
-
-	for _, loc := range(trailHeadLocs){
-		trailHeadScore := checkTrailP2(loc, input, loc, 0)
-		listOfTrailHeadScores = append(listOfTrailHeadScores, trailHeadScore)
+func p1(input []string)[]string{
+	chunkSize := (len(input)/GOMAXPROCS)
+	if chunkSize==0{
+		chunkSize=1
 	}
-	return calcTrailHeadSum(listOfTrailHeadScores)
-}
-func checkTrailP2(trailHead []int, input [][]string, currLoc []int, expHeight int)int{
-	if !checkWithinbounds(input, currLoc){
-		return 0
+	noOfRoutines := (len(input)/chunkSize)+1
+	out := make([][]string, noOfRoutines) 
+	// var mutex sync.Mutex
+	var wg sync.WaitGroup
+	for i:=0; i<noOfRoutines; i++{
+		wg.Add(1)
+		go func(i int){
+			defer wg.Done()
+			start:=i*chunkSize
+			end := (i+1)*chunkSize
+			if end>len(input){
+				end = len(input)
+			}
+			localOut := make([]string, 0, chunkSize)
+			for j:=start; j<end; j++{
+				num := input[j]
+				if num=="0"{
+					localOut = append(localOut, strconv.Itoa(1))
+				}else if len(num)%2==0{
+					stone1 := num[:len(num)/2]
+					stone2 := num[len(num)/2:]
+					if num[0]=='0'{
+						stone1 = removeLeadZeros(stone1)
+					}
+					if num[len(num)/2]=='0'{
+						stone2 = removeLeadZeros(stone2)
+					}
+					localOut = append(localOut, stone1)
+					localOut = append(localOut, stone2)
+				}else{
+					localOut = append(localOut, strconv.Itoa(convertStringToInt(num)*2024))
+				}
+			}
+			// mutex.Lock()
+			out[i]=localOut
+			// mutex.Unlock()
+		}(i)
 	}
-	currHeight, _ := strconv.Atoi(input[currLoc[0]][currLoc[1]])
-	// when the input is . the currHeight will be 0 and thatexp height is only possible at the start when we know the location is not . 
-	if currHeight!=expHeight{
-		return 0
-	}
-	if currHeight==9 {
-		// fmt.Println("returned one")
-		return 1
-	}
-	return (checkTrail(trailHead, input, []int{currLoc[0]+1, currLoc[1]}, expHeight+1)+ checkTrail(trailHead, input, []int{currLoc[0]-1, currLoc[1]}, expHeight+1)+ checkTrail(trailHead, input, []int{currLoc[0], currLoc[1]+1}, expHeight+1)+ checkTrail(trailHead, input, []int{currLoc[0], currLoc[1]-1}, expHeight+1))
-}
+
+	wg.Wait()
+
+	finalOut := combineNestedLoops(out, (len(input)))
 
 
-
-
-
-
-
-
-func p1(trailHeadLocs [][]int, input [][]string)int{
-	listOfTrailHeadScores := make([]int, 0)
-
-	for _, loc := range(trailHeadLocs){
-		resetMarkSummits(input)
-		trailHeadScore := checkTrail(loc, input, loc, 0)
-		fmt.Println(trailHeadScore)
-		listOfTrailHeadScores = append(listOfTrailHeadScores, trailHeadScore)
-	}
-	return calcTrailHeadSum(listOfTrailHeadScores)
-}
-func checkTrail(trailHead []int, input [][]string, currLoc []int, expHeight int)int{
-	if !checkWithinbounds(input, currLoc){
-		return 0
-	}
-	currHeight, _ := strconv.Atoi(input[currLoc[0]][currLoc[1]])
-	// when the input is . the currHeight will be 0 and thatexp height is only possible at the start when we know the location is not . 
-	if currHeight!=expHeight{
-		return 0
-	}
-	if currHeight==9 && !checkIfMarked(currLoc){
-		// fmt.Println("returned one")
-		markTheSummit(currLoc)
-		return 1
-	}
-	return (checkTrail(trailHead, input, []int{currLoc[0]+1, currLoc[1]}, expHeight+1)+ checkTrail(trailHead, input, []int{currLoc[0]-1, currLoc[1]}, expHeight+1)+ checkTrail(trailHead, input, []int{currLoc[0], currLoc[1]+1}, expHeight+1)+ checkTrail(trailHead, input, []int{currLoc[0], currLoc[1]-1}, expHeight+1))
+	return finalOut
 }
 
-
-func calcTrailHeadSum(input []int)int{
-	out:=0
-	MapFuncToList(input, func(num int)[]string{
-		out+=num
-		return []string{""}
-	})
-	return out
+func removeLeadZeros(input string)string{
+	for i, val := range(input){
+		if val!='0'{
+			return input[i:]
+		}
+	}
+	return "0"
 }
